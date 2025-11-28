@@ -1,8 +1,8 @@
 set -x
 
-# Example runnable on H20 * 8
-
+# 아래 값은 grad overlapping/병렬화 전략에 따라 달라져야 함
 export CUDA_DEVICE_MAX_CONNECTIONS=1 # For megatron communication/computation overlapping
+# 미리 띄워져있는 vllm과 맞지 않기 때문에 일단은 gpu 0을 제외
 export CUDA_VISIBLE_DEVICES=1,2,3,4,5,6,7
 
 gsm8k_train_path=$HOME/data/gsm8k/train.parquet
