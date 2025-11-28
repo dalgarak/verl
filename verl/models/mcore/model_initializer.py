@@ -21,6 +21,11 @@ from abc import ABC, abstractmethod
 from megatron.core.models.gpt.gpt_layer_specs import get_gpt_decoder_block_spec, get_gpt_mtp_block_spec
 from megatron.core.models.gpt.gpt_model import GPTModel
 
+# for WBL
+from megatron.core.models.wbl_moe_gpt.model import (
+    get_wbl_moe_gpt_decoder_block_spec,
+)
+
 from .config_converter import PretrainedConfig, TransformerConfig
 
 
@@ -274,3 +279,42 @@ class Qwen25VLModel(BaseModelInitializer):
             )
 
         return qwen25_vl_model
+
+
+# FIXME: for WBL - class name must be changes properly.
+class VaetkiV1Model(BaseModelInitializer):
+    """Initializer for VAETKI 100B Model."""
+
+    def get_transformer_layer_spec(self, vp_stage=None):
+        extra_kwargs = {} if not self.has_vp_stage else {"vp_stage": vp_stage}
+        transformer_layer_spec = get_wbl_moe_gpt_decoder_block_spec(self.tfconfig, 
+                use_transformer_engine=True, **extra_kwargs)
+        return transformer_layer_spec
+
+    def get_rope_scaling_args(self) -> dict:
+        """Get rope scaling args."""
+        rope_scaling_args = {}
+        return rope_scaling_args
+
+    def initialize(
+        self,
+        **kwargs,
+    ):
+        vp_stage = kwargs.get("vp_stage", None)
+        freeze_moe_router = kwargs.get("freeze_moe_router", True)
+        if freeze_moe_router:
+            self.tfconfig.moe_router_load_balancing_type = "none"
+        # MTP
+        if self.tfconfig.mtp_num_layers is not None and self.tfconfig.mtp_num_layers > 0:
+            transformer_layer_spec = self.get_transformer_layer_spec(vp_stage=vp_stage)
+            mtp_block_spec = get_gpt_mtp_block_spec(
+                self.tfconfig, transformer_layer_spec, use_transformer_engine=True, vp_stage=vp_stage
+            )
+            kwargs["mtp_block_spec"] = mtp_block_spec
+
+        model = super().initialize(**kwargs)
+        if freeze_moe_router:
+            for layer in model.decoder.layers:
+                if hasattr(layer.mlp, "router"):
+                    layer.mlp.router.weight.requires_grad = False
+        return model
