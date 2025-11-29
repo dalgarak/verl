@@ -583,6 +583,7 @@ class ActorRolloutRefWorker(MegatronWorker, DistProfilerExtension):
                 self.tf_config,
                 self.layer_name_mapping,
             )
+            # JHSHIN; FIXME - checks TP erronous shape here
 
         set_expandable_segments(False)
 

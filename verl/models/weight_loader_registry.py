@@ -14,13 +14,17 @@
 
 
 def get_weight_loader(arch: str):
-    from verl.models.mcore.loader import load_state_dict_to_megatron_gptmodel
+    # for WBL
+    from verl.models.mcore.loader import (
+            load_state_dict_to_megatron_gptmodel,
+            load_state_dict_to_megatron_wbl_model,
+    )
 
     _MODEL_WEIGHT_MEGATRON_LOADER_REGISTRY = {
         "LlamaForCausalLM": load_state_dict_to_megatron_gptmodel,
         "Qwen2ForCausalLM": load_state_dict_to_megatron_gptmodel,
-        # For WBL
-        "WBLForCausalLM": load_state_dict_to_megatron_gptmodel,
+        # For WBL; currently not supported properly; use megatron-core distcp(torch_dist) checkpoint.
+        "WBLForCausalLM": load_state_dict_to_megatron_wbl_model,
     }
 
     if arch in _MODEL_WEIGHT_MEGATRON_LOADER_REGISTRY:

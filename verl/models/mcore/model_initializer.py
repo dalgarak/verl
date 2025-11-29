@@ -25,8 +25,25 @@ from megatron.core.models.gpt.gpt_model import GPTModel
 from megatron.core.models.wbl_moe_gpt.model import (
     get_wbl_moe_gpt_decoder_block_spec,
 )
+from verl.utils.logger import print_rank_0
 
 from .config_converter import PretrainedConfig, TransformerConfig
+
+
+def print_module_params(model, print_func):
+    """
+    각 모듈별 파라미터 크기와 개수를 출력
+    """
+    print_func(f"{'Module':40s} {'Parameter Shape':30s} {'# Params':>10s}")
+    print_func("-" * 85)
+    total_params = 0
+    for name, param in model.named_parameters():
+        shape_str = str(list(param.shape))
+        num_params = param.numel()
+        print_func(f"{name:40s} {shape_str:30s} {num_params:10,d}")
+        total_params += num_params
+    print_func("-" * 85)
+    print_func(f"{'Total':40s} {'':30s} {total_params:10,d}")
 
 
 class BaseModelInitializer(ABC):
@@ -90,6 +107,10 @@ class BaseModelInitializer(ABC):
             mtp_block_spec=mtp_block_spec,
             **({} if not self.has_vp_stage else {"vp_stage": vp_stage}),
         )
+
+        # for WBL
+        print_rank_0(model)
+        print_module_params(model, print_rank_0)
 
         if post_process and value:
             from verl.models.llama.megatron.layers.parallel_linear import LinearForLastLayer
@@ -286,9 +307,12 @@ class VaetkiV1Model(BaseModelInitializer):
     """Initializer for VAETKI 100B Model."""
 
     def get_transformer_layer_spec(self, vp_stage=None):
+        """ disable TP parallelism for shared_experts """
         extra_kwargs = {} if not self.has_vp_stage else {"vp_stage": vp_stage}
         transformer_layer_spec = get_wbl_moe_gpt_decoder_block_spec(self.tfconfig, 
-                use_transformer_engine=True, **extra_kwargs)
+                use_transformer_engine=True, 
+                disable_parallism_for_shared_expert=True,
+                **extra_kwargs)
         return transformer_layer_spec
 
     def get_rope_scaling_args(self) -> dict:

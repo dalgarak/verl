@@ -396,9 +396,10 @@ def hf_to_mcore_config_vaetki_v1(
     # DeepseekV3ForCausalLM
     from megatron.core.transformer.enums import AttnBackend
 
-    from .patch_v012 import apply_patch
+    # are we really need this?
+    #from .patch_v012 import apply_patch
 
-    apply_patch()
+    #apply_patch()
 
     # for WBL, add some duplicates for compatibility.
     hf_config.num_key_value_heads = hf_config.num_attention_heads 

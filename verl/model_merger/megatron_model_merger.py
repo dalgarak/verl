@@ -194,10 +194,15 @@ class MegatronModelMerger(BaseModelMerger):
             "self_attention.linear_kv_down_proj": "self_attn.kv_a_proj_with_mqa",
             "self_attention.linear_kv_up_proj.layer_norm_weight": "self_attn.kv_a_layernorm.weight",
             "self_attention.linear_kv_up_proj": "self_attn.kv_b_proj",
+            # for WBL
+            "self_attention.post_attn_layernorm.weight": "post_attention_layernorm.weight"
             # mlp
-            "pre_mlp_layernorm": "post_attention_layernorm",
-            "mlp.linear_fc1.layer_norm_weight": "post_attention_layernorm.weight",
-            "mlp.linear_fc1.layer_norm_bias": "post_attention_layernorm.bias",
+            # WARNING: for WBL - pre_mlp_layernorm != post_attention_layernorm. it differ from dpskv3.
+            #"pre_mlp_layernorm": "post_attention_layernorm",                               # for dpskv3
+            "mlp.linear_fc1.layer_norm_weight": "pre_mlp_layernorm.weight"                  # for WBL
+            "post_mlp_layernorm.weight": "post_mlp_layernorm.weight"                        # for WBL
+            #"mlp.linear_fc1.layer_norm_weight": "post_attention_layernorm.weight",         # for dpskv3
+            #"mlp.linear_fc1.layer_norm_bias": "post_attention_layernorm.bias",             # for dpskv3
             "mlp.linear_fc1": "mlp.gate_up_proj",
             "mlp.linear_fc2": "mlp.down_proj",
             # moe

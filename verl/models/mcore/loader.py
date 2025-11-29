@@ -493,3 +493,8 @@ def load_state_dict_to_megatron_gptmodel(state_dict, wrapped_models, config, par
     pass
     get_torch_device().empty_cache()
     print_rank_0(f"loading megatron ckpt done, time elapsed {time.time() - start_time}s")
+
+
+def load_state_dict_to_megatron_wbl_model(state_dict, wrapped_models, config, params_dtype, is_value_model=False):
+    raise NotImplementedError("load_state_dict_to_megatron_wbl_model is not implemented, hf -> mcore conversion is not supported currently."
+            "use offline distcp with megatron.use_dist_checkpointing=True and megatron.dist_checkpointing_path=[distcp path].")
