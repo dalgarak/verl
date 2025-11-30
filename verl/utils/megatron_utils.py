@@ -840,6 +840,8 @@ def per_tensor_generator(
             model = unwrap_model(actor_module[scan_vpp_idx])
             for name, param in model.named_parameters():
                 existing_keys.add(name)
+                # JHSHIN, DEBUG
+                #print(f"*** DEBUG: tensor_generator(): {name}, {param.shape} ***")
                 yield name, param
             # note
             # there is a bug in megatron GPTModel
@@ -934,7 +936,18 @@ def per_tensor_generator(
             continue
 
         # tp all gather
-        if tp_utils.is_tensor_parallel_param(broad_pp_tensor):
+        # JHSHIN, DEBUG: 여기서 문제를 확인할 수 있을 듯. 아마 q_a_proj 등이 is_tensor_parallel_param으로 떨어졌기 때문일 것.
+        #print(f"*** megatron_utils.py, DEBUG: TP ALL GATHER; {cur_name}, type: {type(broad_pp_tensor)}, shape: {broad_pp_tensor.shape}, is tensor_parallel param: {tp_utils.is_tensor_parallel_param(broad_pp_tensor)}")
+        # 여기서 replicated tensor는 그냥 넘어가야 한다;
+        # 일단 WORKAROUND 부터 넣어보자.
+        if tp_utils.is_tensor_parallel_param(broad_pp_tensor) and (
+                # MLA part; they are TP available, however, must be handled as replicated tensor
+                "self_attention.linear_q_down_proj.weight" not in cur_name and
+                "self_attention.linear_kv_down_proj.weight" not in cur_name and
+                # for WBL(vaetki) only; since we changed TP-role of shared experts to not use it for the TP != ETP condition;
+                #"mlp.shared_experts.linear_fc1.weight" not in cur_name and
+                "mlp.shared_experts.linear_fc2.weight" not in cur_name
+        ):
             # allocate a new tensor with proper size
             if all_gather_group_size <= 1:
                 infer_params = [broad_pp_tensor]
